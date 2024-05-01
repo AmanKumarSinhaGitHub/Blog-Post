@@ -6,27 +6,30 @@ const jwt = require("jsonwebtoken");
 const userModel = require('./models/user');
 const postModel = require('./models/blogPost');
 
+// Set view engine and middleware
 app.set("view engine", "ejs");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-
+// Homepage route
 app.get('/', (req, res) => {
   res.render('index');
 });
 
-
+// Login page route
 app.get('/login', (req, res) => {
   res.render('login');
 });
 
-
+// Logout route
 app.get('/logout', (req, res) => {
+  // Clear token cookie and redirect to login page
   res.cookie("token", "");
   res.redirect("/login");
-})
+});
 
+// Login route
 app.post('/login', async (req, res) => {
   let { email, password } = req.body;
 
@@ -35,6 +38,7 @@ app.post('/login', async (req, res) => {
     let user = await userModel.findOne({ email });
 
     if (!user) {
+      // User not found
       return res.status(400).send("User Not Found");
     }
 
@@ -46,6 +50,13 @@ app.post('/login', async (req, res) => {
       }
       if (result) {
         // Passwords match, login successful
+
+        // Generate JWT token
+        let token = jwt.sign({ email: user.email, userID: user._id }, "secretkeyhere");
+
+        // Set JWT token as a cookie
+        res.cookie("token", token);
+
         res.status(200).send("Login Successful");
       } else {
         // Passwords don't match, redirect to login page
@@ -58,13 +69,14 @@ app.post('/login', async (req, res) => {
   }
 });
 
-
+// User registration route
 app.post('/registerUser', async (req, res) => {
   let { username, name, email, password, age } = req.body;
 
   let user = await userModel.findOne({ email });
 
   if (user) {
+    // User already registered
     return res.status(500).send("User Already Registered");
   }
 
@@ -105,10 +117,27 @@ app.post('/registerUser', async (req, res) => {
   });
 });
 
+// Profile route - accessible only if user is logged in
+app.get('/profile', isLoggedIn, (req, res) => {
+  console.log(req.user);
+  res.render('profile')
+});
 
+// Middleware to check if user is logged in
+function isLoggedIn(req, res, next) {
+  if (req.cookies.token === "" || req.cookies.token === undefined) {
+    // User not logged in
+    res.send("You must be logged in");
+  }
+  else {
+    // User logged in, decode token and attach user data to request object
+    let data = jwt.verify(req.cookies.token, "secretkeyhere");
+    req.user = data;
+    next();
+  }
+}
 
-
-
+// Start server
 app.listen(3000, () => {
   console.log('App listening on port 3000!');
 });
