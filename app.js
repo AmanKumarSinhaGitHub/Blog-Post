@@ -4,7 +4,7 @@ const cookieParser = require('cookie-parser');
 const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
 const userModel = require('./models/user');
-const postModel = require('./models/blogPost');
+const postModel = require('./models/post');
 
 // Set view engine and middleware
 app.set("view engine", "ejs");
@@ -57,7 +57,7 @@ app.post('/login', async (req, res) => {
         // Set JWT token as a cookie
         res.cookie("token", token);
 
-        res.status(200).send("Login Successful");
+        res.status(200).redirect('/profile');
       } else {
         // Passwords don't match, redirect to login page
         res.redirect('/login');
@@ -108,7 +108,7 @@ app.post('/registerUser', async (req, res) => {
         // Set JWT as a cookie
         res.cookie("token", token);
 
-        res.status(200).send("User registered successfully");
+        res.status(200).redirect("/profile");
       } catch (err) {
         console.error("Error creating user:", err);
         res.status(500).send("Internal server error");
@@ -118,16 +118,36 @@ app.post('/registerUser', async (req, res) => {
 });
 
 // Profile route - accessible only if user is logged in
-app.get('/profile', isLoggedIn, (req, res) => {
-  console.log(req.user);
-  res.render('profile')
+app.get('/profile', isLoggedIn, async (req, res) => {
+  // console.log(req.user);
+
+  let user = await userModel.findOne({email: req.user.email})
+  res.render('profile', {user})
 });
+
+
+// Create Post
+app.post('/createPost', isLoggedIn, async (req, res) => {
+  let user = await userModel.findOne({email: req.user.email})
+  let {blogContent} = req.body;
+
+  let post = await postModel.create({
+    user: user._id,
+    content: blogContent,
+  });
+
+  // console.log(post);
+
+  user.posts.push(post._id);
+  await user.save();
+  res.redirect('/profile');
+})
 
 // Middleware to check if user is logged in
 function isLoggedIn(req, res, next) {
   if (req.cookies.token === "" || req.cookies.token === undefined) {
     // User not logged in
-    res.send("You must be logged in");
+    res.redirect('/login');
   }
   else {
     // User logged in, decode token and attach user data to request object
