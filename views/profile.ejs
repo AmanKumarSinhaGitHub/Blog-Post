@@ -13,17 +13,22 @@
     <div class="w-full min-h-screen bg-zinc-900 text-white">
 
         <div class="heading p-10 flex items-center justify-center">
-            <h1 class="text-3xl font-semibold">Welcome <%= user.name %>
-            </h1>
-            <a href="/logout"
-                class="mx-3 text-bold text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800">Logout</a>
+            <% if (user) { %>
+                <h1 class="text-3xl font-semibold">Welcome <%= user.name %>
+                </h1>
+                <% } else { %>
+                    <h1 class="text-3xl font-semibold">Welcome Guest</h1>
+                    <% } %>
+                        <a href="/logout"
+                            class="mx-3 text-bold text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800">Logout</a>
 
         </div>
 
         <form action="/createPost" method="post" class="max-w-lg mx-auto">
 
             <div class="mb-5">
-                <label for="blogContent" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Create Your
+                <label for="blogContent" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Create
+                    Your
                     Post</label>
                 <textarea name="blogContent" rows="4"
                     class="w-full resize-none px-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:focus:border-blue-500"
@@ -41,54 +46,24 @@
 
             <h4 class="text-lg font-semibold mb-2 mt-5 mx-8">Your All Post</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 ">
-                <div class="post bg-gray-800 p-6 m-5 rounded-lg shadow-md">
-                    <h4 class="text-lg font-semibold mb-2">Post Title</h4>
-                    <p class="text-sm text-white">Lorem ipsum dolor sit amet consectetur adipisicing elit. Velit, qui
-                        sed iure maxime officiis aperiam odio, est pariatur esse vitae repellendus quos? Dolor?</p>
-                    <div class="flex gap-3 mt-2">
-                        <a class="text-blue-400 text-bold" href="">Like</a>
-                        <a class="text-zinc-400 text-bold" href="">Edit</a>
-                    </div>
-                </div>
-
-
-                <div class="post bg-gray-800 p-6 m-5 rounded-lg shadow-md">
-                    <h4 class="text-lg font-semibold mb-2">Post Title</h4>
-                    <p class="text-sm text-white">Lorem ipsum dolor sit amet consectetur adipisicing elit. Velit, qui
-                        sed iure maxime officiis aperiam odio, est pariatur esse vitae repellendus quos? Dolor?</p>
-                    <div class="flex gap-3 mt-2">
-                        <a class="text-blue-400 text-bold" href="">Like</a>
-                        <a class="text-zinc-400 text-bold" href="">Edit</a>
-                    </div>
-                </div>
-
-
-                <div class="post bg-gray-800 p-6 m-5 rounded-lg shadow-md">
-                    <h4 class="text-lg font-semibold mb-2">Post Title</h4>
-                    <p class="text-sm text-white">Lorem ipsum dolor sit amet consectetur adipisicing elit. Velit, qui
-                        sed iure maxime officiis aperiam odio, est pariatur esse vitae repellendus quos? Dolor?</p>
-                    <div class="flex gap-3 mt-2">
-                        <a class="text-blue-400 text-bold" href="">Like</a>
-                        <a class="text-zinc-400 text-bold" href="">Edit</a>
-                    </div>
-                </div>
-
-
-                <div class="post bg-gray-800 p-6 m-5 rounded-lg shadow-md">
-                    <h4 class="text-lg font-semibold mb-2">Post Title</h4>
-                    <p class="text-sm text-white">Lorem ipsum dolor sit amet consectetur adipisicing elit. Velit, qui
-                        sed iure maxime officiis aperiam odio, est pariatur esse vitae repellendus quos? Dolor?</p>
-                    <div class="flex gap-3 mt-2">
-                        <a class="text-blue-400 text-bold" href="">Like</a>
-                        <a class="text-zinc-400 text-bold" href="">Edit</a>
-                    </div>
-                </div>
+                <% if (user && user.posts.length> 0) { %>
+                    <% user.posts.forEach(post=> { %>
+                        <div class="post bg-gray-800 p-6 m-5 rounded-lg shadow-md">
+                            <h4 class="text-lg font-semibold mb-2"><%= user.email %></h4>
+                            <p class="text-sm text-white">
+                                <%= post.content %>
+                            </p>
+                            <div class="flex gap-3 mt-2">
+                                <a class="text-blue-400 text-bold" href="">Like</a>
+                                <a class="text-zinc-400 text-bold" href="">Edit</a>
+                            </div>
+                        </div>
+                        <% }); %>
+                            <% } else { %>
+                                <p class="text-lg text-white mx-8">You have no posts yet.</p>
+                                <% } %>
             </div>
         </div>
-
-
-
-
     </div>
 </body>
 

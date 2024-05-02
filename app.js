@@ -1,10 +1,11 @@
+// Import required modules
 const express = require('express');
 const app = express();
 const cookieParser = require('cookie-parser');
 const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
 const userModel = require('./models/user');
-const postModel = require('./models/post');
+const postModel = require('./models/blogPost');
 
 // Set view engine and middleware
 app.set("view engine", "ejs");
@@ -31,11 +32,11 @@ app.get('/logout', (req, res) => {
 
 // Login route
 app.post('/login', async (req, res) => {
-  let { email, password } = req.body;
+  const { email, password } = req.body;
 
   try {
     // Find the user by email
-    let user = await userModel.findOne({ email });
+    const user = await userModel.findOne({ email });
 
     if (!user) {
       // User not found
@@ -52,7 +53,7 @@ app.post('/login', async (req, res) => {
         // Passwords match, login successful
 
         // Generate JWT token
-        let token = jwt.sign({ email: user.email, userID: user._id }, "secretkeyhere");
+        const token = jwt.sign({ email: user.email, userID: user._id }, "secretkeyhere");
 
         // Set JWT token as a cookie
         res.cookie("token", token);
@@ -71,9 +72,9 @@ app.post('/login', async (req, res) => {
 
 // User registration route
 app.post('/registerUser', async (req, res) => {
-  let { username, name, email, password, age } = req.body;
+  const { username, name, email, password, age } = req.body;
 
-  let user = await userModel.findOne({ email });
+  const user = await userModel.findOne({ email });
 
   if (user) {
     // User already registered
@@ -94,7 +95,7 @@ app.post('/registerUser', async (req, res) => {
 
       // Create new user with hashed password
       try {
-        let createdUser = await userModel.create({
+        const createdUser = await userModel.create({
           username,
           name,
           email,
@@ -103,7 +104,7 @@ app.post('/registerUser', async (req, res) => {
         });
 
         // Sign JWT token with the newly created user's details
-        let token = jwt.sign({ email: createdUser.email, userID: createdUser._id }, "secretkeyhere");
+        const token = jwt.sign({ email: createdUser.email, userID: createdUser._id }, "secretkeyhere");
 
         // Set JWT as a cookie
         res.cookie("token", token);
@@ -119,45 +120,55 @@ app.post('/registerUser', async (req, res) => {
 
 // Profile route - accessible only if user is logged in
 app.get('/profile', isLoggedIn, async (req, res) => {
-  // console.log(req.user);
-
-  let user = await userModel.findOne({email: req.user.email})
-  res.render('profile', {user})
+  try {
+    const user = await userModel.findOne({ email: req.user.email }).populate("posts");
+    res.render('profile', { user });
+  } catch (err) {
+    console.error("Error fetching user profile:", err);
+    res.status(500).send("Internal server error");
+  }
 });
-
 
 // Create Post
 app.post('/createPost', isLoggedIn, async (req, res) => {
-  let user = await userModel.findOne({email: req.user.email})
-  let {blogContent} = req.body;
+  try {
+    const user = await userModel.findOne({ email: req.user.email });
+    const { blogContent } = req.body;
 
-  let post = await postModel.create({
-    user: user._id,
-    content: blogContent,
-  });
+    const post = await postModel.create({
+      user: user._id,
+      content: blogContent,
+    });
 
-  // console.log(post);
-
-  user.posts.push(post._id);
-  await user.save();
-  res.redirect('/profile');
-})
+    user.posts.push(post._id);
+    await user.save();
+    res.redirect('/profile');
+  } catch (err) {
+    console.error("Error creating post:", err);
+    res.status(500).send("Internal server error");
+  }
+});
 
 // Middleware to check if user is logged in
 function isLoggedIn(req, res, next) {
-  if (req.cookies.token === "" || req.cookies.token === undefined) {
+  if (!req.cookies.token) {
     // User not logged in
-    res.redirect('/login');
+    return res.redirect('/login');
   }
-  else {
-    // User logged in, decode token and attach user data to request object
-    let data = jwt.verify(req.cookies.token, "secretkeyhere");
+
+  try {
+    // Verify JWT token
+    const data = jwt.verify(req.cookies.token, "secretkeyhere");
     req.user = data;
     next();
+  } catch (err) {
+    console.error("Error verifying token:", err);
+    res.status(401).send("Unauthorized");
   }
 }
 
 // Start server
-app.listen(3000, () => {
-  console.log('App listening on port 3000!');
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`App listening on port ${PORT}`);
 });
