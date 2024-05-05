@@ -47,15 +47,24 @@
             <h4 class="text-lg font-semibold mb-2 mt-5 mx-8">Your All Post</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 ">
                 <% if (user && user.posts.length> 0) { %>
-                    <% user.posts.forEach(post=> { %>
+                    <% user.posts.reverse().forEach(post=> { %>
                         <div class="post bg-gray-800 p-6 m-5 rounded-lg shadow-md">
-                            <h4 class="text-lg font-semibold mb-2"><%= user.email %></h4>
+                            <h4 class="text-lg font-semibold mb-2">
+                                <%= user.email %>
+                            </h4>
                             <p class="text-sm text-white">
                                 <%= post.content %>
                             </p>
+                            <p class="mt-3 text-white text-bold">
+                                <%= post.likes.length %> Likes
+                            </p>
                             <div class="flex gap-3 mt-2">
-                                <a class="text-blue-400 text-bold" href="">Like</a>
-                                <a class="text-zinc-400 text-bold" href="">Edit</a>
+
+                                <a class="text-blue-400 text-bold" href="/like/<%= post._id %>">
+                                    <%= post.likes.indexOf(user._id) === -1 ? "Like" : "Unlike" %>
+                                </a>
+
+                                <a class="text-zinc-400 text-bold" href="/edit/<%= post._id %>">Edit</a>
                             </div>
                         </div>
                         <% }); %>

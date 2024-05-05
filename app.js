@@ -149,6 +149,40 @@ app.post('/createPost', isLoggedIn, async (req, res) => {
   }
 });
 
+
+// Like Post// Like Post
+app.get('/like/:id', isLoggedIn, async (req, res) => {
+  try {
+    // Find the post by ID and populate the 'user' field
+    const blogPost = await postModel.findById(req.params.id).populate('user');
+
+    if (!blogPost) {
+      return res.status(404).send('Post not found');
+    }
+
+    // Check if the user has already liked the post
+    const likedIndex = blogPost.likes.indexOf(req.user.userID);
+
+    if (likedIndex === -1) {
+      // User hasn't liked the post, add the like
+      blogPost.likes.push(req.user.userID);
+    } else {
+      // User has already liked the post, remove the like
+      blogPost.likes.splice(likedIndex, 1);
+    }
+
+    // Save the updated post
+    await blogPost.save();
+
+    // Redirect to the profile page
+    res.redirect('/profile');
+  } catch (err) {
+    console.error('Error liking post:', err);
+    res.status(500).send('Internal server error');
+  }
+});
+
+
 // Middleware to check if user is logged in
 function isLoggedIn(req, res, next) {
   if (!req.cookies.token) {
