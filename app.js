@@ -150,7 +150,7 @@ app.post('/createPost', isLoggedIn, async (req, res) => {
 });
 
 
-// Like Post// Like Post
+// Like Post
 app.get('/like/:id', isLoggedIn, async (req, res) => {
   try {
     // Find the post by ID and populate the 'user' field
@@ -179,6 +179,38 @@ app.get('/like/:id', isLoggedIn, async (req, res) => {
   } catch (err) {
     console.error('Error liking post:', err);
     res.status(500).send('Internal server error');
+  }
+});
+
+
+
+// Edit Post
+app.get('/edit/:id', isLoggedIn, async (req, res) => {
+  try {
+
+    // Find the post by ID and populate the 'user' field
+    const blogPost = await postModel.findById(req.params.id).populate('user');
+
+    res.render('edit', { blogPost });
+
+  } catch (err) {
+    console.error('Error liking post:', err);
+    res.status(500).send('Internal server error');
+  }
+});
+
+
+
+// Edit Post
+app.post('/editPost/:id', isLoggedIn, async (req, res) => {
+  try {
+    // Find the post by ID and update its content
+    await postModel.findByIdAndUpdate({ _id: req.params.id }, { content: req.body.blogContent });
+
+    res.redirect('/profile');
+  } catch (err) {
+    console.error("Error creating post:", err);
+    res.status(500).send("Internal server error");
   }
 });
 
