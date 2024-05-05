@@ -8,6 +8,7 @@ This is a simple blog application built with Node.js, Express.js, EJS, and Mongo
 - Create, edit, and delete posts
 - View all posts by a user
 - Upload and update profile images
+- Like and unlike posts
 
 ## Installation
 
