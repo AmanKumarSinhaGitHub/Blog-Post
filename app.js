@@ -1,37 +1,40 @@
 // Import required modules
-const express = require('express');
+const express = require("express");
 const app = express();
-const cookieParser = require('cookie-parser');
-const bcrypt = require('bcrypt');
+const path = require("path");
+const cookieParser = require("cookie-parser");
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const userModel = require('./models/user');
-const postModel = require('./models/blogPost');
+const userModel = require("./models/user");
+const postModel = require("./models/blogPost");
+const upload = require("./config/multerconfig");
 
 // Set view engine and middleware
 app.set("view engine", "ejs");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, "public")));
 app.use(cookieParser());
 
 // Homepage route
-app.get('/', (req, res) => {
-  res.render('index');
+app.get("/", (req, res) => {
+  res.render("index");
 });
 
 // Login page route
-app.get('/login', (req, res) => {
-  res.render('login');
+app.get("/login", (req, res) => {
+  res.render("login");
 });
 
 // Logout route
-app.get('/logout', (req, res) => {
+app.get("/logout", (req, res) => {
   // Clear token cookie and redirect to login page
   res.cookie("token", "");
   res.redirect("/login");
 });
 
 // Login route
-app.post('/login', async (req, res) => {
+app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -53,15 +56,18 @@ app.post('/login', async (req, res) => {
         // Passwords match, login successful
 
         // Generate JWT token
-        const token = jwt.sign({ email: user.email, userID: user._id }, "secretkeyhere");
+        const token = jwt.sign(
+          { email: user.email, userID: user._id },
+          "secretkeyhere"
+        );
 
         // Set JWT token as a cookie
         res.cookie("token", token);
 
-        res.status(200).redirect('/profile');
+        res.status(200).redirect("/profile");
       } else {
         // Passwords don't match, redirect to login page
-        res.redirect('/login');
+        res.redirect("/login");
       }
     });
   } catch (err) {
@@ -71,7 +77,7 @@ app.post('/login', async (req, res) => {
 });
 
 // User registration route
-app.post('/registerUser', async (req, res) => {
+app.post("/registerUser", async (req, res) => {
   const { username, name, email, password, age } = req.body;
 
   const user = await userModel.findOne({ email });
@@ -100,11 +106,14 @@ app.post('/registerUser', async (req, res) => {
           name,
           email,
           age,
-          password: hash // Save hashed password to the database
+          password: hash, // Save hashed password to the database
         });
 
         // Sign JWT token with the newly created user's details
-        const token = jwt.sign({ email: createdUser.email, userID: createdUser._id }, "secretkeyhere");
+        const token = jwt.sign(
+          { email: createdUser.email, userID: createdUser._id },
+          "secretkeyhere"
+        );
 
         // Set JWT as a cookie
         res.cookie("token", token);
@@ -119,18 +128,41 @@ app.post('/registerUser', async (req, res) => {
 });
 
 // Profile route - accessible only if user is logged in
-app.get('/profile', isLoggedIn, async (req, res) => {
+app.get("/profile", isLoggedIn, async (req, res) => {
   try {
-    const user = await userModel.findOne({ email: req.user.email }).populate("posts");
-    res.render('profile', { user });
+    const user = await userModel
+      .findOne({ email: req.user.email })
+      .populate("posts");
+    res.render("profile", { user });
   } catch (err) {
     console.error("Error fetching user profile:", err);
     res.status(500).send("Internal server error");
   }
 });
 
+// Edit Profile Image
+app.get("/profile/editProfile", isLoggedIn, async (req, res) => {
+  try {
+    const user = await userModel
+      .findOne({ email: req.user.email })
+      .populate("posts");
+    res.render("editProfile", { user });
+  } catch (err) {
+    console.error("Error fetching user profile:", err);
+    res.status(500).send("Internal server error");
+  }
+});
+
+// Upload Profile Image
+app.post("/uploadProfileImage", upload.single("image"), isLoggedIn, async (req, res) => {
+  const user = await userModel.findOne({ email: req.user.email });
+  user.profileImage = req.file.filename;
+  await user.save();
+  res.redirect("/profile")
+});
+
 // Create Post
-app.post('/createPost', isLoggedIn, async (req, res) => {
+app.post("/createPost", isLoggedIn, async (req, res) => {
   try {
     const user = await userModel.findOne({ email: req.user.email });
     const { blogContent } = req.body;
@@ -142,22 +174,21 @@ app.post('/createPost', isLoggedIn, async (req, res) => {
 
     user.posts.push(post._id);
     await user.save();
-    res.redirect('/profile');
+    res.redirect("/profile");
   } catch (err) {
     console.error("Error creating post:", err);
     res.status(500).send("Internal server error");
   }
 });
 
-
 // Like Post
-app.get('/like/:id', isLoggedIn, async (req, res) => {
+app.get("/like/:id", isLoggedIn, async (req, res) => {
   try {
     // Find the post by ID and populate the 'user' field
-    const blogPost = await postModel.findById(req.params.id).populate('user');
+    const blogPost = await postModel.findById(req.params.id).populate("user");
 
     if (!blogPost) {
-      return res.status(404).send('Post not found');
+      return res.status(404).send("Post not found");
     }
 
     // Check if the user has already liked the post
@@ -175,51 +206,47 @@ app.get('/like/:id', isLoggedIn, async (req, res) => {
     await blogPost.save();
 
     // Redirect to the profile page
-    res.redirect('/profile');
+    res.redirect("/profile");
   } catch (err) {
-    console.error('Error liking post:', err);
-    res.status(500).send('Internal server error');
+    console.error("Error liking post:", err);
+    res.status(500).send("Internal server error");
   }
 });
 
-
-
 // Edit Post
-app.get('/edit/:id', isLoggedIn, async (req, res) => {
+app.get("/edit/:id", isLoggedIn, async (req, res) => {
   try {
-
     // Find the post by ID and populate the 'user' field
-    const blogPost = await postModel.findById(req.params.id).populate('user');
+    const blogPost = await postModel.findById(req.params.id).populate("user");
 
-    res.render('edit', { blogPost });
-
+    res.render("edit", { blogPost });
   } catch (err) {
-    console.error('Error liking post:', err);
-    res.status(500).send('Internal server error');
+    console.error("Error liking post:", err);
+    res.status(500).send("Internal server error");
   }
 });
 
-
-
 // Edit Post
-app.post('/editPost/:id', isLoggedIn, async (req, res) => {
+app.post("/editPost/:id", isLoggedIn, async (req, res) => {
   try {
     // Find the post by ID and update its content
-    await postModel.findByIdAndUpdate({ _id: req.params.id }, { content: req.body.blogContent });
+    await postModel.findByIdAndUpdate(
+      { _id: req.params.id },
+      { content: req.body.blogContent }
+    );
 
-    res.redirect('/profile');
+    res.redirect("/profile");
   } catch (err) {
     console.error("Error creating post:", err);
     res.status(500).send("Internal server error");
   }
 });
 
-
 // Middleware to check if user is logged in
 function isLoggedIn(req, res, next) {
   if (!req.cookies.token) {
     // User not logged in
-    return res.redirect('/login');
+    return res.redirect("/login");
   }
 
   try {
